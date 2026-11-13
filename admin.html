@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Analytics Dashboard - Birthday Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-body">
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="header-titles">
+                <h2>Admin Analytics Dashboard</h2>
+                <p class="subtitle">Chatbot usage metrics and query intelligence insights</p>
+            </div>
+            <div class="header-actions">
+                <a href="/" class="btn-secondary">Back to Dashboard</a>
+                <a href="/logout" class="btn-outline">Logout</a>
+            </div>
+        </header>
+
+        <!-- Stat Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-title">Total Questions Asked</div>
+                    <div class="stat-number">{{ analytics.total_queries }}</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-title">Successful Queries</div>
+                    <div class="stat-number text-success">{{ analytics.success_count }}</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-title">Unsuccessful / Unclear</div>
+                    <div class="stat-number text-warning">{{ analytics.unsuccessful_count }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-sections-grid">
+            <!-- Most Frequently Used Intents -->
+            <div class="dashboard-card">
+                <h3>Most Frequently Used Intents</h3>
+                {% if analytics.top_intents %}
+                <ul class="data-list">
+                    {% for item in analytics.top_intents %}
+                    <li class="data-item">
+                        <span class="item-label">
+                            <span class="badge">{{ item.intent }}</span>
+                        </span>
+                        <span class="item-count">{{ item.count }} times</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="empty-state">No intent statistics recorded yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Frequently Searched Relationships -->
+            <div class="dashboard-card">
+                <h3>Frequently Searched Relationships</h3>
+                {% if analytics.top_relationships %}
+                <ul class="data-list">
+                    {% for item in analytics.top_relationships %}
+                    <li class="data-item">
+                        <span class="item-label">{{ item.relationship }}</span>
+                        <span class="item-count">{{ item.count }} searches</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="empty-state">No relationship searches logged yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Questions Chatbot Failed to Understand -->
+        <div class="dashboard-card full-width">
+            <h3>Questions Chatbot Failed to Understand</h3>
+            <p class="section-desc">Queries categorized as unknown or unresolvable (without sensitive credentials).</p>
+            {% if analytics.failed_questions %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User Question</th>
+                            <th>Reason / Status</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for q in analytics.failed_questions %}
+                        <tr>
+                            <td class="bold-text">"{{ q.message }}"</td>
+                            <td><span class="badge badge-warning">{{ q.failed_reason or 'Intent Unknown' }}</span></td>
+                            <td class="small-text">{{ q.created_at }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="empty-state">All recorded user queries have been understood successfully.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

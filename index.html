@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birthday Assistant - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="app-header">
+            <div class="header-brand">
+                <h2>Birthday Assistant</h2>
+            </div>
+            <div class="header-user-nav">
+                <span class="user-greeting">Signed in as <strong>{{ username }}</strong></span>
+                <div class="nav-action-group">
+                    <button id="reminder-toggle-btn" class="nav-btn" title="Toggle Birthday Reminders">
+                        Reminders: <span id="reminder-status-text">OFF</span>
+                    </button>
+                    <button id="open-wishes-btn" class="nav-btn">Wishes Studio</button>
+                    <button id="open-insights-btn" class="nav-btn">Insights</button>
+                    <button id="open-contacts-btn" class="nav-btn">Contacts</button>
+                    {% if role == 'admin' %}
+                    <a href="/admin" class="nav-btn admin-link">Admin</a>
+                    {% endif %}
+                    <a href="/logout" class="nav-btn logout-link">Logout</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Two-Column Dashboard -->
+        <main class="dashboard-grid">
+
+            <!-- ============================================== -->
+            <!-- LEFT COLUMN: Birthday Assistant Chatbot -->
+            <!-- ============================================== -->
+            <section class="card-column chatbot-column">
+                <div class="card-header">
+                    <h3>Chatbot Assistant</h3>
+                    <span class="status-indicator">Online</span>
+                </div>
+
+                <!-- In-app Reminder Banner (shown when reminders are active and approaching) -->
+                <div id="reminder-banner" class="reminder-banner" style="display: none;">
+                    <span id="reminder-banner-text">Reminder: Someone has an upcoming birthday!</span>
+                    <button id="close-reminder-banner" class="close-banner-btn" aria-label="Close">&times;</button>
+                </div>
+
+                <div id="chat-box" class="chat-box">
+                    <div class="bot-message">
+                        Hello! I am your Birthday Assistant. 😀
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <input
+                        type="text"
+                        id="user-input"
+                        placeholder="Ask about birthdays, ages, relationships, or locations..."
+                        autocomplete="off"
+                    >
+                    <select id="voice-lang-select" class="voice-lang-select" title="Voice Language (English / Kannada)">
+                        <option value="en-IN" selected>EN</option>
+                        <option value="kn-IN">KN</option>
+                    </select>
+                    <button id="send-btn" class="btn-primary">Send</button>
+                    <button id="speak-btn" class="btn-secondary">Speak</button>
+                </div>
+            </section>
+
+            <!-- ============================================== -->
+            <!-- RIGHT COLUMN: Birthday Calendar -->
+            <!-- ============================================== -->
+            <section class="card-column calendar-column">
+                <div class="card-header">
+                    <h3>Birthday Calendar</h3>
+                    <div id="today-display" class="today-badge">Today: ...</div>
+                </div>
+
+                <!-- Calendar Navigation -->
+                <div class="calendar-controls">
+                    <button id="cal-prev-btn" class="cal-nav-btn" title="Previous Month">&larr; Prev</button>
+                    <h4 id="cal-month-year" class="cal-title">Month Year</h4>
+                    <button id="cal-next-btn" class="cal-nav-btn" title="Next Month">Next &rarr;</button>
+                </div>
+
+                <!-- Calendar Days Grid -->
+                <div class="calendar-table-wrapper">
+                    <div class="calendar-weekdays">
+                        <span>Sun</span>
+                        <span>Mon</span>
+                        <span>Tue</span>
+                        <span>Wed</span>
+                        <span>Thu</span>
+                        <span>Fri</span>
+                        <span>Sat</span>
+                    </div>
+                    <div id="calendar-days" class="calendar-days-grid">
+                        <!-- Rendered dynamically by chat.js -->
+                    </div>
+                </div>
+
+                <!-- Selected Date Detail Box -->
+                <div id="selected-date-box" class="selected-date-box">
+                    <h4 id="selected-date-title">Selected Date Details</h4>
+                    <div id="selected-date-content" class="selected-date-content">
+                        Click any highlighted date above to see who celebrates a birthday.
+                    </div>
+                </div>
+
+                <!-- Birthday Countdown Highlight Card -->
+                <div id="nearest-countdown-card" class="nearest-countdown-card" style="display: none;">
+                    <div class="countdown-badge">Nearest Birthday Countdown</div>
+                    <div id="nearest-countdown-text" class="countdown-highlight">Calculating countdown...</div>
+                    <div id="nearest-countdown-sub" class="countdown-sub"></div>
+                </div>
+
+                <!-- Upcoming Birthdays List Below Calendar -->
+                <div class="upcoming-birthdays-section">
+                    <h4>Upcoming Birthdays & Countdown</h4>
+                    <ul id="upcoming-birthdays-list" class="upcoming-list">
+                        <!-- Rendered dynamically by chat.js -->
+                    </ul>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: BIRTHDAY REMINDERS PERMISSION -->
+    <!-- ============================================== -->
+    <div id="reminder-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Birthday Reminders Permission</h3>
+                <button class="close-modal-btn" onclick="closeReminderModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Would you like to enable browser notifications for upcoming birthdays?</p>
+                <p class="text-muted">You will receive reminders when someone in your contacts has an approaching birthday. Reminders can be disabled at any time.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="allow-reminders-btn" class="btn-primary">Allow Reminders</button>
+                <button class="btn-outline" onclick="closeReminderModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: BIRTHDAY WISHES STUDIO -->
+    <!-- ============================================== -->
+    <div id="wishes-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card modal-wide wishes-studio-modal">
+            <div class="modal-header">
+                <h3>Birthday Wishes Studio</h3>
+                <button class="close-modal-btn" onclick="closeWishesModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Top Controls: Contact & Language -->
+                <div class="wishes-controls-grid">
+                    <div class="form-group">
+                        <label for="wish-person-select">Select Contact</label>
+                        <select id="wish-person-select" class="form-control">
+                            <option value="">-- Choose a contact --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="wish-lang-select">Language</label>
+                        <select id="wish-lang-select" class="form-control">
+                            <option value="english" selected>English</option>
+                            <option value="kannada">Kannada (ಕನ್ನಡ)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Contact Details Display Card -->
+                <div id="wish-person-info" class="wish-person-card" style="display: none;">
+                    <div class="wish-person-main">
+                        <div class="wish-person-name-group">
+                            <span class="detail-label">Person</span>
+                            <strong id="wish-person-name" class="detail-value">--</strong>
+                        </div>
+                        <div class="wish-person-rel-group">
+                            <span class="detail-label">Relationship</span>
+                            <span id="wish-person-badge" class="badge">--</span>
+                        </div>
+                        <div class="wish-person-bday-group">
+                            <span class="detail-label">Birthday</span>
+                            <span id="wish-person-bday" class="badge-date">--</span>
+                        </div>
+                    </div>
+                    <div id="wish-person-location" class="wish-person-loc"></div>
+                </div>
+
+                <!-- Wish Results & Studio Actions -->
+                <div id="wishes-results-container" class="wishes-results-container" style="display: none;">
+                    <!-- Style Selection Tabs & Regenerate Button -->
+                    <div class="style-selector-container">
+                        <label class="style-label">Choose Style:</label>
+                        <div class="style-pills-row">
+                            <button type="button" class="style-pill active" data-style="friendly" onclick="selectWishStyle('friendly')">Friendly</button>
+                            <button type="button" class="style-pill" data-style="emotional" onclick="selectWishStyle('emotional')">Emotional</button>
+                            <button type="button" class="style-pill" data-style="funny" onclick="selectWishStyle('funny')">Funny</button>
+                            <button type="button" class="style-pill" data-style="formal" onclick="selectWishStyle('formal')">Formal</button>
+                            <button type="button" class="style-pill" data-style="short" onclick="selectWishStyle('short')">Short</button>
+                            <button type="button" id="regenerate-wish-btn" class="btn-regenerate" onclick="regenerateWish()" title="Generate another wish in this style">
+                                <span class="btn-icon">&#x21bb;</span> Regenerate
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Main Generated Wish Box -->
+                    <div class="generated-wish-box">
+                        <div class="wish-box-header">
+                            <span id="current-style-label" class="wish-style-tag">Friendly Style</span>
+                            <span id="variation-indicator" class="variation-tag">Variation 1 of 3</span>
+                        </div>
+                        <div id="generated-wish-text" class="generated-wish-text"></div>
+                    </div>
+
+                    <!-- Action Buttons: Copy, WhatsApp, Email, Download Greeting Card -->
+                    <div class="studio-actions-grid">
+                        <button type="button" id="copy-wish-btn" class="studio-btn btn-copy" onclick="copyCurrentWish()">
+                            <span class="btn-icon">&#x2398;</span> Copy Wish
+                        </button>
+                        <button type="button" id="share-whatsapp-btn" class="studio-btn btn-whatsapp" onclick="shareWishOnWhatsApp()">
+                            <span class="btn-icon">&#x1F4AC;</span> Share on WhatsApp
+                        </button>
+                        <button type="button" id="share-email-btn" class="studio-btn btn-email" onclick="shareWishByEmail()">
+                            <span class="btn-icon">&#x2709;</span> Send by Email
+                        </button>
+                        <button type="button" id="download-card-btn" class="studio-btn btn-card" onclick="downloadGreetingCardPng()">
+                            <span class="btn-icon">&#x1F4E5;</span> Download Greeting Card
+                        </button>
+                    </div>
+                    <div id="copy-feedback-toast" class="copy-toast" style="display: none;">
+                        Wish copied to clipboard!
+                    </div>
+
+                    <!-- Live Responsive Greeting Card Preview -->
+                    <div class="greeting-card-preview-wrapper">
+                        <div class="preview-header-row">
+                            <h4>Greeting Card Preview (PNG)</h4>
+                            <span class="preview-sub">Professional pink & white card ready for download</span>
+                        </div>
+                        <div id="greeting-card-preview" class="greeting-card-preview">
+                            <div class="card-inner-frame">
+                                <div class="card-header-badge">HAPPY BIRTHDAY</div>
+                                <div id="card-preview-name" class="card-name">--</div>
+                                <div id="card-preview-rel" class="card-rel">--</div>
+                                <div class="card-divider"></div>
+                                <div id="card-preview-wish" class="card-wish-text">--</div>
+                                <div class="card-footer-meta">
+                                    <span id="card-preview-date" class="card-date-badge">Birthday: --</span>
+                                    <span class="card-branding">Birthday Assistant</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden canvas for high-DPI rendering and downloading -->
+                <canvas id="greeting-card-canvas" width="1200" height="750" style="display: none;"></canvas>
+
+                <!-- Hidden fallback elements for backwards compatibility -->
+                <div style="display: none;">
+                    <p id="wish-short-text"></p>
+                    <p id="wish-friendly-text"></p>
+                    <p id="wish-emotional-text"></p>
+                </div>
+
+                <div id="wish-placeholder" class="empty-state">
+                    Select a contact above to generate personalized wishes, share on WhatsApp/Email, or download greeting cards.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeWishesModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: BIRTHDAY INSIGHTS -->
+    <!-- ============================================== -->
+    <div id="insights-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card modal-wide">
+            <div class="modal-header">
+                <h3>Birthday Insights</h3>
+                <button class="close-modal-btn" onclick="closeInsightsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="section-desc">Key metrics and distribution calculated from your workbook records.</p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-title">Total Birthdays</div>
+                        <div id="insight-total" class="stat-number">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">This Month (<span id="insight-month-name">--</span>)</div>
+                        <div id="insight-this-month" class="stat-number">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Next 30 Days</div>
+                        <div id="insight-upcoming" class="stat-number">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Top Birthday Month</div>
+                        <div id="insight-top-month" class="stat-number" style="font-size: 20px;">--</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card" style="margin-top: 16px;">
+                    <h4 style="font-size: 14px; margin-bottom: 8px;">Relationship-Wise Birthday Counts</h4>
+                    <div id="insight-rel-list" class="data-list" style="max-height: 200px;">
+                        <!-- Rendered by chat.js -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeInsightsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: CONTACTS MANAGER (CRUD) -->
+    <!-- ============================================== -->
+    <div id="contacts-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card modal-wide">
+            <div class="modal-header">
+                <h3>Contacts Manager</h3>
+                <button class="close-modal-btn" onclick="closeContactsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="contacts-toolbar">
+                    <input type="text" id="contact-search" placeholder="Search contacts by name, city, relationship..." class="form-control">
+                    <button id="show-add-contact-btn" class="btn-primary">Add Contact</button>
+                </div>
+
+                <!-- Add/Edit Form -->
+                <div id="contact-form-container" class="contact-form-panel" style="display: none;">
+                    <h4 id="form-title">Add Contact</h4>
+                    <form id="contact-form">
+                        <input type="hidden" id="form-contact-id">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="form-name">Name *</label>
+                                <input type="text" id="form-name" class="form-control" required placeholder="Full Name">
+                            </div>
+                            <div class="form-group">
+                                <label for="form-nickname">Nickname</label>
+                                <input type="text" id="form-nickname" class="form-control" placeholder="e.g. Appa, Amma, Rahul">
+                            </div>
+                            <div class="form-group">
+                                <label for="form-dob">Date of Birth *</label>
+                                <input type="date" id="form-dob" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="form-city">Place of Stay</label>
+                                <input type="text" id="form-city" class="form-control" placeholder="City or location">
+                            </div>
+                            <div class="form-group">
+                                <label for="form-rel">Relationship</label>
+                                <input type="text" id="form-rel" class="form-control" placeholder="e.g. Friend, Nephew, Sister">
+                            </div>
+                            <div class="form-group">
+                                <label for="form-rel-grp">Relationship Group</label>
+                                <input type="text" id="form-rel-grp" class="form-control" placeholder="e.g. Sibling Family, Friend Circle">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Save Contact</button>
+                            <button type="button" class="btn-outline" onclick="hideContactForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Contacts Table -->
+                <div class="contacts-table-wrapper">
+                    <table class="data-table" id="contacts-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Nickname</th>
+                                <th>DOB</th>
+                                <th>Place</th>
+                                <th>Relationship</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contacts-tbody">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='chat.js') }}"></script>
+</body>
+</html>
